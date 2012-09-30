@@ -19,6 +19,7 @@
 
 int create_bind_listen_socket(int port);
 void handle_connection(int clientfd);
+int write_sentence(int clientfd, char buffer[], int byte_count);
 int read_sentence(int clientfd, char buffer[]);
 void process_sentence(char buffer[]);
 void uppercase(char *pc);
@@ -30,13 +31,13 @@ int main(int count, char *args[]) {
     // Setup the socket listening for incoming connections.
     int sockfd = create_bind_listen_socket(MY_PORT);
 
-    /*---Forever... ---*/
+    // Loop forever
     while (1)
     {   int clientfd;
         struct sockaddr_in client_addr;
         int addrlen = sizeof(client_addr);
 
-        /*---accept a connection (creating a data pipe)---*/
+        /*--- accept a connection (when one arrives) ---*/
         clientfd = accept(sockfd, (struct sockaddr*)&client_addr, &addrlen);
         printf("%s:%d connected\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
         handle_connection(clientfd);
@@ -94,7 +95,7 @@ void handle_connection(int clientfd) {
         printf("Processing request.\n");
         process_sentence(buffer);
         printf("Sending response.\n");
-        send(clientfd, buffer, bytes_read, 0);
+        write_sentence(clientfd, buffer, bytes_read);
     }
     else {
         printf("Client closed connection.\n");
@@ -103,7 +104,6 @@ void handle_connection(int clientfd) {
     /*---Close data connection---*/
     close(clientfd);
 }
-
 
 int read_sentence(int clientfd, char buffer[]){
     int bytes_read = 0;
@@ -140,6 +140,17 @@ int read_sentence(int clientfd, char buffer[]){
     if (bytes_read <= 0)
         total_bytes_read = -1;
     return total_bytes_read;
+}
+
+int write_sentence(int clientfd, char buffer[], int byte_count) {
+    /* Send the chunk */
+    int i;
+    int nwritten;
+    for (i = 0; i < byte_count; i += nwritten) {
+        nwritten = send(clientfd, buffer + i, byte_count, 0);
+        if (nwritten < 0) 
+            perror("write failed");
+    }
 }
 
 void process_sentence(char buffer[]) {
