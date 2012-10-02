@@ -2,9 +2,10 @@
 *   A single threaded blocking echo server.
 *       1) Listens for TCP connections.
 *       2) Waits to accepts a connection.
-*       3) Echos back the first data it receives from the connection.
-*       4) Close the connection
-*       5) Go to 2
+*       3) Reads data once from the socket
+*       4) Writes the same data back to the socket.
+*       5) Close the connection
+*       6) Go to 2
 **************************************************************************/
 #include <stdio.h>
 #include <errno.h>
