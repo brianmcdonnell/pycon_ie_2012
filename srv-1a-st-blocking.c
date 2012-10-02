@@ -20,22 +20,20 @@
 //#define MAXBUF        1024
 #define MAXBUF      10
 
-static void int_handler(int dummy) {
+void int_handler(int dummy) {
     exit(0);
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     signal(SIGINT, int_handler);
 
     int sockfd;
     struct sockaddr_in listen_addr;
     char buffer[MAXBUF];
 
-    // Create a listening socket
-    if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
-    {
-        perror("Socket");
+    // Create a TCP socket
+    if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
+        perror("socket");
         exit(errno);
     }
 
@@ -50,23 +48,20 @@ int main(int argc, char *argv[])
     listen_addr.sin_addr.s_addr = INADDR_ANY;
 
     // Bind socket to a port number
-    if ( bind(sockfd, (struct sockaddr*)&listen_addr, sizeof(listen_addr)) != 0 )
-    {
+    if ( bind(sockfd, (struct sockaddr*)&listen_addr, sizeof(listen_addr)) != 0 ) {
         perror("socket--bind");
         exit(errno);
     }
 
     // Start listening for connections (socket backlog size 20)
-    if ( listen(sockfd, 20) != 0 )
-    {
+    if ( listen(sockfd, 20) != 0 ) {
         perror("socket--listen");
         exit(errno);
     }
     printf("Listening on %s:%d\n", inet_ntoa(listen_addr.sin_addr), ntohs(listen_addr.sin_port));
 
-    // Loop forever
-    while (1)
-    {
+    // Accept loop
+    while (1) {
         int clientfd;
         struct sockaddr_in client_addr;
         int addrlen=sizeof(client_addr);
@@ -77,7 +72,7 @@ int main(int argc, char *argv[])
 
         // Read from kernel buffer into user buffer
         int read_count = recv(clientfd, buffer, MAXBUF, 0);
-        printf("recv:%d\n", read_count);
+        printf("recv:%d bytes\n", read_count);
 
         // Echo back anything sent
         send(clientfd, buffer, read_count, 0);
