@@ -101,11 +101,8 @@ int main(int argc, char *argv[]) {
         else {
             printf("Client closed connection.\n");
         }
-
-        /*---Close data connection---*/
         close(clientfd);
     }
-    /*---Clean up (should never get here!)---*/
     close(sockfd);
     return 0;
 }
