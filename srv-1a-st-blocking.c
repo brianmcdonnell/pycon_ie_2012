@@ -1,6 +1,10 @@
 /**************************************************************************
-*   This is a simple echo server.  This demonstrates the steps to set up
-*   a streaming server.
+*   A single threaded blocking echo server.
+*       1) Listens for TCP connections.
+*       2) Waits to accepts a connection.
+*       3) Echos back the first data it receives from the connection.
+*       4) Close the connection
+*       5) Go to 2
 **************************************************************************/
 #include <stdio.h>
 #include <errno.h>
@@ -16,71 +20,72 @@
 //#define MAXBUF        1024
 #define MAXBUF      10
 
-static void intHandler(int dummy) {
-    //printf("Interrupt Handler!");
+static void int_handler(int dummy) {
     exit(0);
 }
 
-int main(int Count, char *Strings[])
+int main(int argc, char *argv[])
 {
-    signal(SIGINT, intHandler);
+    signal(SIGINT, int_handler);
 
     int sockfd;
-    struct sockaddr_in self;
+    struct sockaddr_in listen_addr;
     char buffer[MAXBUF];
 
-    /*---Create streaming socket---*/
+    // Create a listening socket
     if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
     {
         perror("Socket");
         exit(errno);
     }
 
-    // set SO_REUSEADDR on a socket to true (1):
+    // Allow reusable socket address
     int optval = 1;
     setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval);
 
-    /*---Initialize address/port structure---*/
-    bzero(&self, sizeof(self));
-    self.sin_family = AF_INET;
-    self.sin_port = htons(MY_PORT);
-    self.sin_addr.s_addr = INADDR_ANY;
+    // Initialize address/port structure
+    bzero(&listen_addr, sizeof(listen_addr));
+    listen_addr.sin_family = AF_INET;
+    listen_addr.sin_port = htons(MY_PORT);
+    listen_addr.sin_addr.s_addr = INADDR_ANY;
 
-    /*---Assign a port number to the socket---*/
-    if ( bind(sockfd, (struct sockaddr*)&self, sizeof(self)) != 0 )
+    // Bind socket to a port number
+    if ( bind(sockfd, (struct sockaddr*)&listen_addr, sizeof(listen_addr)) != 0 )
     {
         perror("socket--bind");
         exit(errno);
     }
 
-    /*---Make it a "listening socket"---*/
+    // Start listening for connections (socket backlog size 20)
     if ( listen(sockfd, 20) != 0 )
     {
         perror("socket--listen");
         exit(errno);
     }
+    printf("Listening on %s:%d\n", inet_ntoa(listen_addr.sin_addr), ntohs(listen_addr.sin_port));
 
-    /*---Forever... ---*/
+    // Loop forever
     while (1)
-    {   int clientfd;
+    {
+        int clientfd;
         struct sockaddr_in client_addr;
         int addrlen=sizeof(client_addr);
 
-        /*---accept a connection (creating a data pipe)---*/
+        // Accept a connection
         clientfd = accept(sockfd, (struct sockaddr*)&client_addr, &addrlen);
         printf("%s:%d connected\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
-        /*---Echo back anything sent---*/
+        // Read from kernel buffer into user buffer
         int read_count = recv(clientfd, buffer, MAXBUF, 0);
-        //printf("recv:%d [%s]\n", read_count, buffer);
         printf("recv:%d\n", read_count);
+
+        // Echo back anything sent
         send(clientfd, buffer, read_count, 0);
 
-        /*---Close data connection---*/
+        // Close connection
         close(clientfd);
     }
-    printf("Cleaning up.");
-    /*---Clean up (should never get here!)---*/
+
     close(sockfd);
     return 0;
 }
