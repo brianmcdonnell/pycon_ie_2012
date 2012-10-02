@@ -13,6 +13,7 @@
 #include <signal.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #define MY_PORT     9999
 #define MAXBUF      1024
@@ -31,6 +32,14 @@ int main(int count, char *args[]) {
     // Setup the socket listening for incoming connections.
     int sockfd = create_bind_listen_socket(MY_PORT);
 
+    // Set the listening socket to nonblocking
+    int nflags = fcntl(sockfd, F_GETFL, NULL);
+    nflags |= O_NONBLOCK;
+    if (fcntl(sockfd, F_SETFL, nflags) == -1) {
+        perror("set non-blocking");
+        exit(errno);
+    }
+
     // Loop forever
     while (1)
     {   int clientfd;
@@ -38,8 +47,22 @@ int main(int count, char *args[]) {
         int addrlen = sizeof(client_addr);
 
         /*--- accept a connection (when one arrives) ---*/
-        clientfd = accept(sockfd, (struct sockaddr*)&client_addr, &addrlen);
-        printf("%s:%d connected\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        while(1){
+            clientfd = accept(sockfd, (struct sockaddr*)&client_addr, &addrlen);
+            if (clientfd < 0 && errno == EWOULDBLOCK) {
+                perror("Would have blocked. Waiting 250ms to poll again...");
+                usleep(250*1000);
+            }
+            else if (clientfd < 0) {
+                perror("Something unexpected happened");
+                exit(errno);
+            }
+            else {
+                // We have a valid socket
+                break;
+            }
+        }
+        printf("%s:%d connected: %d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), clientfd);
         handle_connection(clientfd);
     }
     /*---Clean up (should never get here!)---*/
@@ -110,33 +133,22 @@ int read_sentence(int clientfd, char buffer[]){
     int total_bytes_read = 0;
     int total_reads = 0;
     while((bytes_read = recv(clientfd, buffer + total_bytes_read, MAXBUF, 0)) > 0) {
-        // Strip out trailing LF
-        if (buffer[bytes_read + total_bytes_read - 1] == '\n') {
-            buffer[bytes_read + total_bytes_read - 1] = '\0';
-            bytes_read--;
-        }
-        // Strip out trailing CR
-        if (buffer[bytes_read + total_bytes_read - 1] == '\r') {
-            buffer[bytes_read + total_bytes_read - 1] = '\0';
-            bytes_read--;
-        }
-
         // Update the bytes read counts
         total_bytes_read = total_bytes_read + bytes_read;
         total_reads++;
         printf("recv: %d of %d\n", bytes_read, total_bytes_read);
 
-        // Check for a full-stop as it indicates end of request.
-        if (buffer[total_bytes_read - 1] == '.'){
+        // Check for a full-stop as it indicates end of request (cater for \n and \r\n)
+        if (buffer[total_bytes_read - 2] == '.' ||
+                (buffer[total_bytes_read - 2] == '\r' && (buffer[total_bytes_read - 3] == '.'))) {
             printf("End of sentence.\n");
             break;
         }
-
         printf("Read more from socket...\n");
     }
     printf("Read %d in %d buffer reads.\n", total_bytes_read, total_reads);
 
-    // If the last bytes read was -1 the client disconnected
+    // If the last bytes read was 0 the client disconnected
     if (bytes_read <= 0)
         total_bytes_read = -1;
     return total_bytes_read;
