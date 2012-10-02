@@ -1,6 +1,13 @@
 /**************************************************************************
-*   This is a simple echo server.  This demonstrates the steps to set up
-*   a streaming server.
+*   A single threaded blocking echo server.
+*       1) Listens for TCP connections.
+*       2) Waits to accepts a connection.
+*       3) Reads data multiple times from the connection until it gets a 
+*          full sentence (indicated by a terminating full-stop)
+*       4) Converts sentence to CAPS
+*       5) Writes sentence back to the socket.
+*       6) Close the connection
+*       7) Go to 2
 **************************************************************************/
 #include <stdio.h>
 #include <errno.h>
