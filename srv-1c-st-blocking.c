@@ -17,7 +17,7 @@
 #define MY_PORT     9999
 #define MAXBUF      1024
 
-int create_bind_listen_socket(int port);
+int create_bind_listen_socket();
 void handle_connection(int clientfd);
 int write_sentence(int clientfd, char buffer[], int byte_count);
 int read_sentence(int clientfd, char buffer[]);
@@ -25,68 +25,66 @@ void process_sentence(char buffer[]);
 void uppercase(char *pc);
 void interrupt_handler(int dummy);
 
-int main(int count, char *args[]) {
+int main(int argc, char *argv[]) {
     signal(SIGINT, interrupt_handler);
 
     // Setup the socket listening for incoming connections.
-    int sockfd = create_bind_listen_socket(MY_PORT);
+    int sockfd = create_bind_listen_socket();
 
-    // Loop forever
-    while (1)
-    {   int clientfd;
+    // Accept loop
+    while (1) {
+        int clientfd;
         struct sockaddr_in client_addr;
         int addrlen = sizeof(client_addr);
 
-        /*--- accept a connection (when one arrives) ---*/
+        // Accept a connection (BLOCKING)
         clientfd = accept(sockfd, (struct sockaddr*)&client_addr, &addrlen);
         printf("%s:%d connected\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
         handle_connection(clientfd);
     }
-    /*---Clean up (should never get here!)---*/
     close(sockfd);
     return 0;
 }
 
-int create_bind_listen_socket(int port){
-    int sockfd;
-    struct sockaddr_in self;
 
-    /*---Create streaming socket---*/
-    if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
-    {
+
+int create_bind_listen_socket(){
+    int sockfd;
+    struct sockaddr_in listen_addr;
+    char buffer[MAXBUF];
+
+    // Create a TCP socket
+    if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
         perror("Socket");
         exit(errno);
     }
 
-    // set SO_REUSEADDR on a socket to true (1):
+    // Allow reusable socket address
     int optval = 1;
     setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval);
 
-    /*---Initialize address/port structure---*/
-    bzero(&self, sizeof(self));
-    self.sin_family = AF_INET;
-    self.sin_port = htons(MY_PORT);
-    self.sin_addr.s_addr = INADDR_ANY;
+    // Initialize address/port structure
+    bzero(&listen_addr, sizeof(listen_addr));
+    listen_addr.sin_family = AF_INET;
+    listen_addr.sin_port = htons(MY_PORT);
+    listen_addr.sin_addr.s_addr = INADDR_ANY;
 
-    /*---Assign a port number to the socket---*/
-    if ( bind(sockfd, (struct sockaddr*)&self, sizeof(self)) != 0 )
-    {
+    // Bind socket to a port number
+    if ( bind(sockfd, (struct sockaddr*)&listen_addr, sizeof(listen_addr)) != 0 ) {
         perror("socket--bind");
         exit(errno);
     }
 
-    /*---Make it a "listening socket"---*/
-    if ( listen(sockfd, 20) != 0 )
-    {
+    // Start listening for connections (socket backlog size 20)
+    if ( listen(sockfd, 20) != 0 ) {
         perror("socket--listen");
         exit(errno);
     }
-
+    printf("Listening on %s:%d\n", inet_ntoa(listen_addr.sin_addr), ntohs(listen_addr.sin_port));
     return sockfd;
 }
 
 void handle_connection(int clientfd) {
-    /*--- Receive a sentence, convert to uppercase and echo it back. ---*/
     char buffer[MAXBUF];
 
     int bytes_read = read_sentence(clientfd, buffer);
@@ -100,8 +98,6 @@ void handle_connection(int clientfd) {
     else {
         printf("Client closed connection.\n");
     }
-
-    /*---Close data connection---*/
     close(clientfd);
 }
 
@@ -110,40 +106,29 @@ int read_sentence(int clientfd, char buffer[]){
     int total_bytes_read = 0;
     int total_reads = 0;
     while((bytes_read = recv(clientfd, buffer + total_bytes_read, MAXBUF, 0)) > 0) {
-        // Strip out trailing LF
-        if (buffer[bytes_read + total_bytes_read - 1] == '\n') {
-            buffer[bytes_read + total_bytes_read - 1] = '\0';
-            bytes_read--;
-        }
-        // Strip out trailing CR
-        if (buffer[bytes_read + total_bytes_read - 1] == '\r') {
-            buffer[bytes_read + total_bytes_read - 1] = '\0';
-            bytes_read--;
-        }
-
         // Update the bytes read counts
         total_bytes_read = total_bytes_read + bytes_read;
         total_reads++;
         printf("recv: %d of %d\n", bytes_read, total_bytes_read);
 
-        // Check for a full-stop as it indicates end of request.
-        if (buffer[total_bytes_read - 1] == '.'){
+        // Check for a full-stop as it indicates end of request (cater for \n and \r\n)
+        if (buffer[total_bytes_read - 2] == '.' ||
+                (buffer[total_bytes_read - 2] == '\r' && (buffer[total_bytes_read - 3] == '.'))) {
             printf("End of sentence.\n");
             break;
         }
-
         printf("Read more from socket...\n");
     }
     printf("Read %d in %d buffer reads.\n", total_bytes_read, total_reads);
 
-    // If the last bytes read was -1 the client disconnected
+    // If the last bytes_read was 0 the client disconnected
     if (bytes_read <= 0)
         total_bytes_read = -1;
     return total_bytes_read;
 }
 
 int write_sentence(int clientfd, char buffer[], int byte_count) {
-    /* Send the chunk */
+    /* Send chunks until all bytes are written */
     int i;
     int nwritten;
     for (i = 0; i < byte_count; i += nwritten) {
