@@ -24,7 +24,9 @@ class TranslatorProtocol(Protocol):
         # (In out protocol a simple full-stop indicates end-of-request).
         if self.read_buffer.strip().endswith('.'):
             output_str = do_translation(self.read_buffer)
+            self.read_buffer = ''
             self.transport.write(output_str)
+
 
 def do_translation(input_str):
     return input_str.upper()
