@@ -8,40 +8,6 @@ import txmongo
 SVC_HOST = 'localhost'
 SVC_PORT = 8010
 
-@defer.inlineCallbacks
-def handle_request(request):
-    try:
-        # Get a mongo db connection
-        cxn = yield txmongo.MongoConnection()
-
-        # Pull the specified user from the database
-        username = request.args['user'][0]
-        user_defer = cxn.pycon.users.find_one({'name': username})
-
-        # Call the translator service
-        input_str = request.args['data'][0]
-        from txtranslator import TranslatorClient
-        client = TranslatorClient(SVC_HOST, SVC_PORT)
-        output_str_defer = client.translate2(input_str)
-
-        # Allows both calls to run concurrently
-        user = yield user_defer
-        output_str = yield output_str_defer
-
-        # Write the response
-        request.setHeader("content-type", "text/html")
-        request.write("<html>\
-        <head><title>Translator</title></head>\
-        <body style=\"font-size: xx-large\">\
-        <h3>User: %s ($%s)</h3>\
-        <div>Input: %s</div>\
-        <div>Output: %s</div>\
-        </body>\
-        </html>" % (str(user['name']), user['balance'], input_str, output_str))
-        request.finish()
-    except Exception, err:
-        request.write(resource.ErrorPage(500, "Error retrieving user data.", err).render(request))
-        request.finish()
 
 class TranslatorResource(resource.Resource):
     isLeaf = True
@@ -57,9 +23,45 @@ class TranslatorResource(resource.Resource):
         if not input_str.strip().endswith('.'):
             return resource.ErrorPage(400, "Bad Request", "Input data must end with period").render(request)
 
-        handle_request(request)
+        self.handle_request(request)
 
         return NOT_DONE_YET
+
+
+    @defer.inlineCallbacks
+    def handle_request(self, request):
+        try:
+            # Get a mongo db connection
+            cxn = yield txmongo.MongoConnection()
+
+            # Pull the specified user from the database
+            username = request.args['user'][0]
+            user_defer = cxn.pycon.users.find_one({'name': username})
+
+            # Call the translator service
+            input_str = request.args['data'][0]
+            from txtranslator import TranslatorClient
+            client = TranslatorClient(SVC_HOST, SVC_PORT)
+            output_str_defer = client.translate2(input_str)
+
+            # Allows both calls to run concurrently
+            user = yield user_defer
+            output_str = yield output_str_defer
+
+            # Write the response
+            request.setHeader("content-type", "text/html")
+            request.write("<html>\
+            <head><title>Translator</title></head>\
+            <body style=\"font-size: xx-large\">\
+            <h3>User: %s ($%s)</h3>\
+            <div>Input: %s</div>\
+            <div>Output: %s</div>\
+            </body>\
+            </html>" % (str(user['name']), user['balance'], input_str, output_str))
+            request.finish()
+        except Exception, err:
+            request.write(resource.ErrorPage(500, "Error retrieving user data.", err).render(request))
+            request.finish()
 
 root = resource.Resource()
 root.putChild("translate", TranslatorResource())
