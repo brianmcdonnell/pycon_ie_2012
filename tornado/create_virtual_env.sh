@@ -37,5 +37,5 @@ source env/bin/activate
 
 run "easy_install -Z ipython"
 run "easy_install -Z tornado"
-run "easy_install -Z https://github.com/fiorix/mongo-async-python-driver/zipball/master"
-
+run "easy_install -Z pymongo"
+run "easy_install -Z asyncmongo"
