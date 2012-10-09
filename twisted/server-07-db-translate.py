@@ -27,7 +27,6 @@ class TranslatorResource(resource.Resource):
 
         return NOT_DONE_YET
 
-
     @defer.inlineCallbacks
     def handle_request(self, request):
         try:
@@ -36,17 +35,13 @@ class TranslatorResource(resource.Resource):
 
             # Pull the specified user from the database
             username = request.args['user'][0]
-            user_defer = cxn.pycon.users.find_one({'name': username})
+            user = yield cxn.pycon.users.find_one({'name': username})
 
             # Call the translator service
             input_str = request.args['data'][0]
             from txtranslator import TranslatorClient
             client = TranslatorClient(SVC_HOST, SVC_PORT)
-            output_str_defer = client.translate2(input_str)
-
-            # Allows both calls to run concurrently
-            user = yield user_defer
-            output_str = yield output_str_defer
+            output_str = yield client.translate2(input_str)
 
             # Write the response
             request.setHeader("content-type", "text/html")
