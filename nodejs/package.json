@@ -1,0 +1,11 @@
+{
+  "name": "Node PyCon Ireland 2012",
+  "description": "Collection of example node servers.",
+  "author": "Brian McDonnell <brian@scalefront.com>",
+  "dependencies": {
+    "string": "1.1.x",
+  },
+  "devDependencies": {
+  },
+  "engine": "node >= 0.8.x"
+}
