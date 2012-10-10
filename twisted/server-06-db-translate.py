@@ -33,13 +33,10 @@ def mongocxn_errback(err, request, *args, **kwargs):
     request.finish()
 
 def getuser_callback(user, request, *args, **kwargs):
-    if user is None or user.get('balance', 0.0) <= 0.0:
+    if not user:
         # Refuse to do the translation
-        request.setHeader("content-type", "text/html")
-        request.write("<html><head><title>Translator</title></head>\
-                                <body style=\"font-size: xx-large\">\
-                                <h3>Insufficient Funds</h3></body>\
-                        </html>")
+        username = request.args['user'][0]
+        request.write("User '%s' not found!" % username)
         request.finish()
     else:
         # Call the translator service
@@ -55,17 +52,7 @@ def getuser_errback(err, request, *args, **kwargs):
     request.finish()
 
 def translator_callback(output_str, request, user):
-
-    input_str = request.args['data'][0]
-    request.setHeader("content-type", "text/html")
-    request.write("<html>\
-<head><title>Translator</title></head>\
-<body style=\"font-size: xx-large\">\
-<h3>User: %s ($%s)</h3>\
-<div>Input: %s</div>\
-<div>Output: %s</div>\
-</body>\
-</html>" % (str(user['name']), user['balance'], input_str, output_str))
+    request.write("%s: %s" % (str(user['name']), output_str))
     request.finish()
 
 def translator_errback(err, request, user):
