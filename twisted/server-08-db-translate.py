@@ -41,7 +41,7 @@ class TranslatorResource(resource.Resource):
             if user:
                 request.write("%s: %s" % (str(user['name']), output_str))
             else:
-                request.write("No user '%s' found" % username)
+                request.write("User '%s' not found!" % username)
         except Exception, err:
             print err
             request.write(resource.ErrorPage(500, "Internal Server Error.", err).render(request))

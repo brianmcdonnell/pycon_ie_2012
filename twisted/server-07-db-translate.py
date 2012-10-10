@@ -17,6 +17,7 @@ class TranslatorResource(resource.Resource):
         error_str = validate_params(request, ('user', 'data'))
         if error_str: return error_str
 
+        # 
         self.handle_request(request)
 
         return NOT_DONE_YET
@@ -28,24 +29,15 @@ class TranslatorResource(resource.Resource):
             # Pull the specified user from the database
             cxn = yield txmongo.MongoConnection()
             user = yield cxn.pycon.users.find_one({'name': username})
-            if user is None:
-                request.write("<html><head><title>Translator</title></head>\
-                                <body style=\"font-size: xx-large\">\
-                                <h3>Insufficient Funds</h3></body>\
-                                </html>")
-            else:
+            if user:
                 # Call the translator service
                 input_str = request.args['data'][0]
                 from txtranslator import TranslatorClient
                 client = TranslatorClient(SVC_HOST, SVC_PORT)
                 output_str = yield client.translate2(input_str)
-
-                # Write the response
-                request.write("<html><head><title>Translator</title></head><body>\
-                <h3>User: %s ($%s)</h3>\
-                <div>Input: %s</div>\
-                <div>Output: %s</div>\
-                </body></html>" % (str(user['name']), user['balance'], input_str, output_str))
+                request.write("%s: %s" % (str(user['name']), output_str))
+            else:
+                request.write("User '%s' not found!" % username)
         except Exception, err:
             request.write(resource.ErrorPage(500, "Internal Server Error.", err).render(request))
         finally:
