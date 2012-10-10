@@ -3,30 +3,29 @@ from twisted.web import server, resource
 from twisted.internet import reactor
 from twisted.web.server import NOT_DONE_YET
 
+from utils import validate_params
+
 SVC_HOST = 'localhost'
 SVC_PORT = 8010
-
-def translator_callback(result, request):
-    request.write(result)
-    request.finish()
 
 class TranslatorResource(resource.Resource):
     isLeaf = True
 
     def render_GET(self, request):
-        # ENSURE GET PARAMS WERE PASSED
-        data = request.args.get('data', None)
-        if data is None:
-            return resource.ErrorPage(400, "Bad Request", "Missing 'data' url parameter. Nothing to translate.").render(request)
-        input_str = data[0]
-        if not input_str.strip().endswith('.'):
-            return resource.ErrorPage(400, "Bad Request", "Input data must end with period").render(request)
+        # Ensure URL params were passed
+        error_str = validate_params(request, ('data',))
+        if error_str: return error_str
 
         from txtranslator import TranslatorClient
         client = TranslatorClient(SVC_HOST, SVC_PORT)
-        client.translate1(input_str, translator_callback, request)
+        # Pass callback function only (Not doing any error handling)
+        client.translate1(request.args['data'][0], translator_callback, request)
 
         return NOT_DONE_YET
+
+def translator_callback(result, request):
+    request.write(result)
+    request.finish()
 
 root = resource.Resource()
 root.putChild("translate", TranslatorResource())

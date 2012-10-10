@@ -3,6 +3,7 @@ from twisted.web import server, resource
 from twisted.internet import defer, reactor
 from twisted.web.server import NOT_DONE_YET
 
+from utils import validate_params
 import txmongo
 
 SVC_HOST = 'localhost'
@@ -13,54 +14,38 @@ class TranslatorResource(resource.Resource):
     isLeaf = True
 
     def render_GET(self, request):
-        user = request.args.get('user', None)
-        if user is None:
-            return resource.ErrorPage(400, "Bad Request", "Missing 'user' url parameter.").render(request)
-        data = request.args.get('data', None)
-        if data is None:
-            return resource.ErrorPage(400, "Bad Request", "Missing 'data' url parameter. Nothing to translate.").render(request)
-        input_str = data[0]
-        if not input_str.strip().endswith('.'):
-            return resource.ErrorPage(400, "Bad Request", "Input data must end with period").render(request)
-
+        error_str = validate_params(request, ('user', 'data'))
+        if error_str: return error_str
         self.handle_request(request)
-
         return NOT_DONE_YET
-
 
     @defer.inlineCallbacks
     def handle_request(self, request):
         try:
-            # Get a mongo db connection
-            cxn = yield txmongo.MongoConnection()
-
-            # Pull the specified user from the database
             username = request.args['user'][0]
+            cxn = yield txmongo.MongoConnection()
+            # Don't yield the user query
             user_defer = cxn.pycon.users.find_one({'name': username})
 
-            # Call the translator service
+            # Go ahead with the translation regardless of 
+            # whether we find a user.
             input_str = request.args['data'][0]
             from txtranslator import TranslatorClient
             client = TranslatorClient(SVC_HOST, SVC_PORT)
-            output_str_defer = client.translate2(input_str)
+            output_defer = client.translate2(input_str)
 
-            # Allows both calls to run concurrently
+            # Wait until we have both results.
+            output_str = yield output_defer
             user = yield user_defer
-            output_str = yield output_str_defer
 
-            # Write the response
-            request.setHeader("content-type", "text/html")
-            request.write("<html>\
-            <head><title>Translator</title></head>\
-            <body style=\"font-size: xx-large\">\
-            <h3>User: %s ($%s)</h3>\
-            <div>Input: %s</div>\
-            <div>Output: %s</div>\
-            </body>\
-            </html>" % (str(user['name']), user['balance'], input_str, output_str))
-            request.finish()
+            if user:
+                request.write("%s: %s" % (str(user['name']), output_str))
+            else:
+                request.write("No user '%s' found" % username)
         except Exception, err:
-            request.write(resource.ErrorPage(500, "Error retrieving user data.", err).render(request))
+            print err
+            request.write(resource.ErrorPage(500, "Internal Server Error.", err).render(request))
+        finally:
             request.finish()
 
 root = resource.Resource()

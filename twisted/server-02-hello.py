@@ -11,15 +11,15 @@ class HelloResource(resource.Resource):
     isLeaf = True
 
     def render_GET(self, request):
-        # ENSURE GET PARAMS WERE PASSED
+        # Check that the 'name' URL param was passed.
         name = request.args.get('name', None)
         if name is None:
             return resource.ErrorPage(400, "Bad Request", "Missing 'name' param.").render(request)
         name = name[0]
 
-        # Render in a delayed callback
         delay_seconds = 2
         print "Delaying for %s seconds." % delay_seconds
+        # Delay requires a callback
         reactor.callLater(delay_seconds, delayed_render, request, name)
         return NOT_DONE_YET
 

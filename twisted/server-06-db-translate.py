@@ -1,25 +1,26 @@
 #!/usr/bin/env python
 from twisted.web import server, resource
-from twisted.internet import defer, reactor
+from twisted.internet import reactor
 from twisted.web.server import NOT_DONE_YET
 
+from utils import validate_params
 import txmongo
 
 SVC_HOST = 'localhost'
 SVC_PORT = 8010
 
-@defer.inlineCallbacks
-def find_user(request):
-    mongo = yield txmongo.MongoConnection()
-    pycondb = mongo.pycon
-    users = pycondb.users
+class TranslatorResource(resource.Resource):
+    isLeaf = True
 
-    # fetch some documents
-    user = yield users.find({'name': 'brian'})
-    #user = yield users.find()
-    print user
-    request.write('done')
-    request.finish()
+    def render_GET(self, request):
+        error_str = validate_params(request, ('user', 'data'))
+        if error_str: return error_str
+
+        mongo_defer = txmongo.MongoConnection()
+        mongo_defer.addCallback(mongocxn_callback, request)
+        mongo_defer.addErrback(mongocxn_errback, request)
+
+        return NOT_DONE_YET
 
 def mongocxn_callback(cxn, request, *args, **kwargs):
     username = request.args['user'][0]
@@ -70,27 +71,6 @@ def translator_callback(output_str, request, user):
 def translator_errback(err, request, user):
     request.write(resource.ErrorPage(500, "Error calling translator service.", err).render(request))
     request.finish()
-
-
-class TranslatorResource(resource.Resource):
-    isLeaf = True
-
-    def render_GET(self, request):
-        user = request.args.get('user', None)
-        if user is None:
-            return resource.ErrorPage(400, "Bad Request", "Missing 'user' url parameter.").render(request)
-        data = request.args.get('data', None)
-        if data is None:
-            return resource.ErrorPage(400, "Bad Request", "Missing 'data' url parameter. Nothing to translate.").render(request)
-        input_str = data[0]
-        if not input_str.strip().endswith('.'):
-            return resource.ErrorPage(400, "Bad Request", "Input data must end with period").render(request)
-
-        mongo_defer = txmongo.MongoConnection()
-        mongo_defer.addCallback(mongocxn_callback, request)
-        mongo_defer.addErrback(mongocxn_errback, request)
-
-        return NOT_DONE_YET
 
 root = resource.Resource()
 root.putChild("translate", TranslatorResource())
