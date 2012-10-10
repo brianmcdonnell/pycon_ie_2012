@@ -5,6 +5,8 @@ from twisted.internet.protocol import Factory
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet import reactor
 
+SVC_PORT = 8010
+
 class TranslatorProtocol(Protocol):
 
     def __init__(self):
@@ -37,6 +39,7 @@ class TranslatorFactory(Factory):
     def buildProtocol(self, addr):
         return TranslatorProtocol()
 
-endpoint = TCP4ServerEndpoint(reactor, 8010)
+print "Listening on localhost:8010"
+endpoint = TCP4ServerEndpoint(reactor, SVC_PORT)
 endpoint.listen(TranslatorFactory())
 reactor.run()
