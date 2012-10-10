@@ -17,7 +17,7 @@ http.createServer(function(request, response) {
         return;
     }
     var parts = url.parse(request.url, true);
-
+    
     // Connect to mongo
     var server = new Server(DB_HOST, DB_PORT, { auto_reconnect: false });
     var db = new Db('pycon', server, {safe: true});
@@ -37,9 +37,9 @@ http.createServer(function(request, response) {
         });
     });
 
-    function doTranslate(){
+    function doTranslate() {
         translator.translate(SVC_HOST, SVC_PORT, parts.query.data, function(err, output_str){
-            if (err == null){
+            if (err == null) {
                 response.write(output_str);
             } else {
                 response.statusCode = 500;
