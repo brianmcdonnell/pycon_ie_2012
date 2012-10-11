@@ -6,7 +6,11 @@
   "dependencies": {
     "string": {
       "version": "1.1.0"
+    },
+    "async": {
+      "version": "0.1.22"
     }
+
   },
   "engine": "node >= 0.8.x"
 }
