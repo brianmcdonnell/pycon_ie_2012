@@ -6,6 +6,8 @@ var translator = require('./ndtranslator');
 var SVC_HOST = 'localhost';
 var SVC_PORT = 8010;
 
+var PORT = 8080
+
 http.createServer(function(request, response) {
     if (request.url == '/favicon.ico'){
         response.statusCode = 404;
@@ -24,5 +26,6 @@ http.createServer(function(request, response) {
         response.end();
     });
 
-}).listen(8080);
+}).listen(PORT);
 
+console.log("Listening on http://localhost:" + PORT);

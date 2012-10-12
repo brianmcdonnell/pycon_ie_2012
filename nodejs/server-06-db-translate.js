@@ -10,6 +10,8 @@ var SVC_PORT = 8010;
 var DB_HOST = 'localhost';
 var DB_PORT = 27017;
 
+var PORT = 8080;
+
 http.createServer(function(request, response) {
     if (request.url == '/favicon.ico'){
         response.statusCode = 404;
@@ -36,20 +38,22 @@ http.createServer(function(request, response) {
         function(user, callback) {
             if (user == null){
                 response.statusCode = 403;
-                response.write("Insufficient Funds");
+                response.write("User not found.");
                 response.end();
             } else {
+                console.log("Found user " + user.name);
                 doTranslate();
             }
             db.close();
         },
-    ], 
+    ],
     function (err, result) {
         response.statusCode = 500;
         response.write("Internal Server Error: " + err);
     });
 
     function doTranslate() {
+        console.log("Translating " + parts.query.data);
         translator.translate(SVC_HOST, SVC_PORT, parts.query.data, function(err, output_str){
             if (err == null) {
                 response.write(output_str);
@@ -61,5 +65,6 @@ http.createServer(function(request, response) {
         });
     }
 
-}).listen(8080);
+}).listen(PORT);
 
+console.log("Listening on http://localhost:" + PORT);

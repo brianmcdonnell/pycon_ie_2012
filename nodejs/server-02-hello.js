@@ -1,6 +1,8 @@
 var http = require("http");
 var url = require('url');
 
+var PORT = 8080
+
 http.createServer(function(request, response) {
 
     setTimeout(function(){
@@ -10,5 +12,6 @@ http.createServer(function(request, response) {
         response.end();
     }, 1000);
 
-}).listen(8080);
+}).listen(PORT);
 
+console.log("Listening on http://localhost:" + PORT);
