@@ -35,7 +35,7 @@ rm -rf env
 virtualenv  env
 source env/bin/activate
 
-run "easy_install -Z ipython"
+#run "easy_install -Z ipython"
 run "easy_install -Z twisted"
 run "easy_install -Z https://github.com/fiorix/mongo-async-python-driver/zipball/master"
 

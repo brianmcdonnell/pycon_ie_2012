@@ -48,6 +48,5 @@ root = resource.Resource()
 root.putChild("translate", TranslatorResource())
 site = server.Site(root)
 reactor.listenTCP(PORT, site)
-reactor.run()
-
 print "Listening on http://localhost:%s/translate/ params:data,user" % PORT
+reactor.run()

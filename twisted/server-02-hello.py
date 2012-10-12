@@ -26,6 +26,5 @@ class HelloResource(resource.Resource):
         return NOT_DONE_YET
 
 reactor.listenTCP(PORT, server.Site(HelloResource()))
-reactor.run()
-
 print "Listening on http://localhost:%s" % PORT
+reactor.run()
