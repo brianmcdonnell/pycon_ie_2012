@@ -36,4 +36,4 @@ http.createServer(function(request, response) {
 
 }).listen(PORT);
 
-console.log("Listening on http://localhost:" + PORT);
+console.log("Listening on http://localhost:" + PORT + " params:data");
