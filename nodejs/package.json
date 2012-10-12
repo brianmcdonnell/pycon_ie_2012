@@ -4,13 +4,9 @@
   "version": "0.0.1",
   "author": "Brian McDonnell <brian@scalefront.com>",
   "dependencies": {
-    "string": {
-      "version": "1.1.0"
-    },
-    "async": {
-      "version": "0.1.22"
-    }
-
+    "string": "1.1.0",
+    "async": "0.1.22"
+    "mongodb": "0.1.11"
   },
   "engine": "node >= 0.8.x"
 }
