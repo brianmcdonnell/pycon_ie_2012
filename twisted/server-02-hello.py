@@ -3,6 +3,8 @@ from twisted.web import server, resource
 from twisted.internet import reactor
 from twisted.web.server import NOT_DONE_YET
 
+PORT = 8080
+
 def delayed_render(request, name):
     request.write("Hello %s, sorry about the delay." % name)
     request.finish()
@@ -23,5 +25,7 @@ class HelloResource(resource.Resource):
         reactor.callLater(delay_seconds, delayed_render, request, name)
         return NOT_DONE_YET
 
-reactor.listenTCP(8080, server.Site(HelloResource()))
+reactor.listenTCP(PORT, server.Site(HelloResource()))
 reactor.run()
+
+print "Listening on http://localhost:%s" % PORT

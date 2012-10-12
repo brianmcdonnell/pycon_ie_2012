@@ -9,6 +9,7 @@ import txmongo
 SVC_HOST = 'localhost'
 SVC_PORT = 8010
 
+PORT = 8080
 
 class TranslatorResource(resource.Resource):
     isLeaf = True
@@ -46,5 +47,7 @@ class TranslatorResource(resource.Resource):
 root = resource.Resource()
 root.putChild("translate", TranslatorResource())
 site = server.Site(root)
-reactor.listenTCP(8080, site)
+reactor.listenTCP(PORT, site)
 reactor.run()
+
+print "Listening on http://localhost:%s/translate/ params:data,user" % PORT
