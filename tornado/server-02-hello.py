@@ -4,6 +4,7 @@ import datetime
 import tornado.ioloop
 import tornado.web
 
+PORT = 8080
 
 class MainHandler(tornado.web.RequestHandler):
 
@@ -24,9 +25,11 @@ class MainHandler(tornado.web.RequestHandler):
 
 
 application = tornado.web.Application([
-    (r"/", MainHandler),
+    (r"/translate/", MainHandler),
 ])
 
 if __name__ == "__main__":
-    application.listen(8080)
+    application.listen(PORT)
     tornado.ioloop.IOLoop.instance().start()
+
+print "Listening on http://localhost:%s/translate/ params:name" % PORT

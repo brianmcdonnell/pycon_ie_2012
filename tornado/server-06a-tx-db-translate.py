@@ -15,6 +15,8 @@ MONGO_DB = 'pycon'
 SVC_HOST = 'localhost'
 SVC_PORT = 8010
 
+PORT = 8080
+
 class MainHandler(tornado.web.RequestHandler):
 
     def __init__(self, *args, **kwargs):
@@ -92,5 +94,7 @@ signal.signal(signal.SIGINT, signal_handler)
 print 'Press Ctrl+C to exit'
 
 if __name__ == "__main__":
-    application.listen(8080)
+    application.listen(PORT)
     tornado.ioloop.IOLoop.instance().start()
+
+print "Listening on http://localhost:%s/translate/ params:name,user" % PORT

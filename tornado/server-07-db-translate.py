@@ -8,6 +8,8 @@ MONGO_HOST = 'localhost'
 MONGO_PORT = 27017
 MONGO_DB = 'pycon'
 
+PORT = 8080
+
 class MainHandler(tornado.web.RequestHandler):
 
     def __init__(self, *args, **kwargs):
@@ -78,3 +80,5 @@ application = tornado.web.Application([
 if __name__ == "__main__":
     application.listen(8080)
     tornado.ioloop.IOLoop.instance().start()
+
+print "Listening on http://localhost:%s/translate/ params:name,user" % PORT
