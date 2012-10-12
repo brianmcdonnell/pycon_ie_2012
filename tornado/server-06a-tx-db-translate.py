@@ -95,6 +95,5 @@ print 'Press Ctrl+C to exit'
 
 if __name__ == "__main__":
     application.listen(PORT)
+    print "Listening on http://localhost:%s/translate/ params:name,user" % PORT
     tornado.ioloop.IOLoop.instance().start()
-
-print "Listening on http://localhost:%s/translate/ params:name,user" % PORT

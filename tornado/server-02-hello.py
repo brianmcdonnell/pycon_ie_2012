@@ -30,6 +30,5 @@ application = tornado.web.Application([
 
 if __name__ == "__main__":
     application.listen(PORT)
+    print "Listening on http://localhost:%s/translate/ params:name" % PORT
     tornado.ioloop.IOLoop.instance().start()
-
-print "Listening on http://localhost:%s/translate/ params:name" % PORT

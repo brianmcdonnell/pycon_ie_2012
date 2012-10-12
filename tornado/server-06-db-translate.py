@@ -4,6 +4,8 @@ import tornado.web
 import tornado.gen
 import asyncmongo
 
+from utils import validate_params
+
 MONGO_HOST = 'localhost'
 MONGO_PORT = 27017
 MONGO_DB = 'pycon'
@@ -19,27 +21,10 @@ class MainHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     @tornado.gen.engine
     def get(self):
-        # ENSURE URL PARAMS WERE PASSED
-        username = self.get_argument('user', None)
-        if username is None:
-            self.set_status(400)
-            self.write("Bad Request. Missing 'user' url parameter.")
-            self.finish()
-            return
-        data = self.get_argument('data', None)
-        if data is None:
-            self.set_status(400)
-            self.write("Bad Request. No data to translate.")
-            self.finish()
-            return
-        if not data.strip().endswith('.'):
-            self.set_status(400)
-            self.write("Bad Request. Input data must end with period.")
-            self.finish()
-            return
+        if not validate_params(self, ('user', 'data')): return
 
         # Check we have the specified user in the database
-        (res, err_dict) = yield tornado.gen.Task(self.db.users.find_one, {'name': username})
+        (res, err_dict) = yield tornado.gen.Task(self.db.users.find_one, {'name': self.get_argument('user')})
         error = err_dict.get('error', None)
         if error:
             self.set_status(500)
@@ -56,7 +41,7 @@ class MainHandler(tornado.web.RequestHandler):
         # Connect to translator service
         from tortranslator import TorTranslator
         translator = TorTranslator('localhost', 8010)
-        output_str = yield tornado.gen.Task(translator.translate, data)
+        output_str = yield tornado.gen.Task(translator.translate, self.get_argument('data'))
         if translator.error:
             self.set_status(500)
             self.write("Internal Server Error. %s" % translator.error)
@@ -71,6 +56,5 @@ application = tornado.web.Application([
 
 if __name__ == "__main__":
     application.listen(PORT)
+    print "Listening on http://localhost:%s/translate/ params:name,user" % PORT
     tornado.ioloop.IOLoop.instance().start()
-
-print "Listening on http://localhost:%s/translate/ params:name,user" % PORT
