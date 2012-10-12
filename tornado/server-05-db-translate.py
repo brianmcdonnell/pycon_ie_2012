@@ -3,6 +3,8 @@ import tornado.ioloop
 import tornado.web
 import asyncmongo
 
+from utils import validate_params
+
 MONGO_HOST = 'localhost'
 MONGO_PORT = 27017
 MONGO_DB = 'pycon'
@@ -20,24 +22,7 @@ class MainHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def get(self):
-        # ENSURE URL PARAMS WERE PASSED
-        username = self.get_argument('user', None)
-        if username is None:
-            self.set_status(400)
-            self.write("Bad Request. Missing 'user' url parameter.")
-            self.finish()
-            return
-        data = self.get_argument('data', None)
-        if data is None:
-            self.set_status(400)
-            self.write("Bad Request. No data to translate.")
-            self.finish()
-            return
-        if not data.strip().endswith('.'):
-            self.set_status(400)
-            self.write("Bad Request. Input data must end with period.")
-            self.finish()
-            return
+        if not validate_params(self, ('data','user')): return
 
         def translation_callback(translator, output_str):
             if translator.error:
@@ -61,9 +46,9 @@ class MainHandler(tornado.web.RequestHandler):
                 from tortranslator import TorTranslator
                 trans = TorTranslator('localhost', 8010)
                 import functools
-                trans.translate(data, functools.partial(translation_callback, trans))
+                trans.translate(self.get_argument('data'), functools.partial(translation_callback, trans))
 
-        self.db.users.find_one({'name': username}, callback=getuser_callback)
+        self.db.users.find_one({'name': self.get_argument('user')}, callback=getuser_callback)
 
 application = tornado.web.Application([
     (r"/translate/", MainHandler),

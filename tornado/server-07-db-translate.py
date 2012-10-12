@@ -4,6 +4,8 @@ import tornado.web
 import tornado.gen
 import asyncmongo
 
+from utils import validate_params
+
 MONGO_HOST = 'localhost'
 MONGO_PORT = 27017
 MONGO_DB = 'pycon'
@@ -19,32 +21,15 @@ class MainHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     @tornado.gen.engine
     def get(self):
-        # ENSURE URL PARAMS WERE PASSED
-        username = self.get_argument('user', None)
-        if username is None:
-            self.set_status(400)
-            self.write("Bad Request. Missing 'user' url parameter.")
-            self.finish()
-            return
-        data = self.get_argument('data', None)
-        if data is None:
-            self.set_status(400)
-            self.write("Bad Request. No data to translate.")
-            self.finish()
-            return
-        if not data.strip().endswith('.'):
-            self.set_status(400)
-            self.write("Bad Request. Input data must end with period.")
-            self.finish()
-            return
+        if not validate_params(self, ('data',)): return
 
         # Check we have the specified user in the database
-        self.db.users.find_one({'name': username}, 
+        self.db.users.find_one({'name': self.get_argument('user')}, 
                 callback=(yield tornado.gen.Callback("db_key")))
         # Connect to translator service
         from tortranslator import TorTranslator
         translator = TorTranslator('localhost', 8010)
-        translator.translate(data, callback=(yield tornado.gen.Callback('translator_key')))
+        translator.translate(self.get_argument('data'), callback=(yield tornado.gen.Callback('translator_key')))
 
         # NOTE: BOTH THE DB QUERY AND THE TRANSLATION HAVE ALREADY STARTED
         (db_res, db_err_dict) = yield tornado.gen.Wait("db_key")

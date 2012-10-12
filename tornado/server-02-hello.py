@@ -4,17 +4,18 @@ import datetime
 import tornado.ioloop
 import tornado.web
 
+from utils import validate_params
+
 PORT = 8080
 
 class MainHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def get(self):
-        # ENSURE URL PARAMS WERE PASSED
-        name = self.get_argument('name', None)
+        if not validate_params(self, ('name',)): return
 
         def render_async():
-            self.write("Hello world, %s (delayed)" % name)
+            self.write("Hello world, %s (delayed)" % self.get_argument('name'))
             self.finish()
 
         delay = datetime.timedelta(days=0, seconds=2)

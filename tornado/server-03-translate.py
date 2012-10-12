@@ -5,21 +5,18 @@ import tornado.iostream
 import tornado.ioloop
 import tornado.web
 
+from utils import validate_params
+
 PORT = 8080
 
 class MainHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def get(self):
-        # ENSURE URL PARAMS WERE PASSED
-        data = self.get_argument('data', None)
-        if data is None:
-            self.set_status(400)
-            self.write("Bad Request. No data to translate\n")
-            self.finish()
+        if not validate_params(self, ('name',)): return
 
         def send_translation_data():
-            stream.write(str(data))
+            stream.write(str(self.get_argument('name')))
             stream.read_until('.', translation_complete)
 
         def translation_complete(translated_data):
