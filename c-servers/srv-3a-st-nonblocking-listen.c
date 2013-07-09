@@ -23,8 +23,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#define MY_PORT     9999
-#define MAXBUF      1024
+#define MY_PORT          9999
+#define MAXBUF           1024
+#define LISTEN_BACKLOG   255
 
 int create_bind_listen_socket();
 void handle_connection(int clientfd);
@@ -106,7 +107,7 @@ int create_bind_listen_socket(){
     }
 
     // Start listening for connections (socket backlog size 20)
-    if ( listen(sockfd, 20) != 0 ) {
+    if ( listen(sockfd, LISTEN_BACKLOG) != 0 ) {
         perror("socket--listen");
         exit(errno);
     }
